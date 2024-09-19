@@ -34,3 +34,21 @@ target_link_libraries(dice
         Qt5::Gui
         Qt5::Widgets
         )
+
+
+# Platform-specific settings
+if(WIN32)
+    # Windows-specific libraries (if any)
+    # Example: target_link_libraries(dice ws2_32)
+elseif(APPLE)
+    # macOS-specific frameworks
+    target_link_libraries(dice "-framework Cocoa")
+    # Optional: Set RPATH to find Qt frameworks at runtime
+    set_target_properties(dice PROPERTIES
+            BUILD_WITH_INSTALL_RPATH TRUE
+            INSTALL_RPATH "@loader_path/../Frameworks"
+            )
+elseif(UNIX)
+    # Linux-specific libraries (if any)
+    # Example: target_link_libraries(dice pthread)
+endif()
