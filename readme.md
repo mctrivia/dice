@@ -1,6 +1,6 @@
 # Dice Face Optimizer
 
-This app calculates the optimal positions of the faces on a non-standard die. It only works for dice with an even number of sides, and the faces will always land facing up.
+This app calculates the optimal positions of the faces on a non-standard die. It only works for dice with an even number of _sides, and the faces will always land facing up.
 
 ## Table of Contents
 
@@ -205,21 +205,21 @@ This app calculates the optimal positions of the faces on a non-standard die. It
    
 ## Usage
 
-When you run the program, it will prompt you to enter the number of sides you want to design.
+When you run the program, it will prompt you to enter the number of _sides you want to design.
 
-After entering the desired number of sides, the program will start generating the optimal positions for the faces.
+After entering the desired number of _sides, the program will start generating the optimal positions for the faces.
 
 ## Visualization
 
 - **Three Spheres:** The program displays three spheres representing the die from three different angles, each 90 degrees apart. This helps you visualize the face placements from multiple perspectives.
 - **Stress Highlighted:** The most stressed face is red, and the least stressed is green.  The color will fade between these depending on how stressed they are.  A good final result should look like random coloring it should not be green in one area and red in another.
-- **Timer Display:** A timer shows how long it has been since a better arrangement was found.
+- **Timer Display:** A _timer shows how long it has been since a better arrangement was found.
 
 ## Recommendations
 
-- **Run Time:** For optimal results, it is recommended to run the app until the timer reaches **86,400 seconds (1 day)**.
+- **Run Time:** For optimal results, it is recommended to run the app until the _timer reaches **86,400 seconds (1 day)**.
 - **Uniform Spacing:** Do not use the die until the face spacing appears uniformly distributed.
-- **Processing Time:** The optimization process takes longer with an increasing number of sides. Please be patient.
+- **Processing Time:** The optimization process takes longer with an increasing number of _sides. Please be patient.
 - **Threading:** The program uses five separate threads to optimize the shape. Visualizations may update asynchronously as different threads find better configurations.
 
 ## Saving Progress

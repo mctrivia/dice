@@ -16,9 +16,9 @@ class PointSphere {
     mutable mutex _mtx;
     size_t _sideCount;
     vector<Vec3> _points;
-    size_t _lowestStressIndex=numeric_limits<size_t>::max();
-    size_t _highestStressIndex=numeric_limits<size_t>::max();
-    double _totalStress=numeric_limits<double>::infinity();
+    size_t _lowestStressIndex = numeric_limits<size_t>::max();
+    size_t _highestStressIndex = numeric_limits<size_t>::max();
+    double _totalStress = numeric_limits<double>::infinity();
 
 public:
     //constructor
@@ -32,8 +32,8 @@ public:
 
     //getter
     Vec3 getPoint(size_t sideIndex) const;
-    Vec3 getStress(size_t sideIndex, bool lockWhileExecuting=true) const;
-    double getTotalStress(bool lockWhileExecuting=true);
+    Vec3 getStress(size_t sideIndex, bool lockWhileExecuting = true) const;
+    double getTotalStress(bool lockWhileExecuting = true);
     size_t sideCount() const;
     size_t getHighestStressIndex();
     size_t getLowestStressIndex();

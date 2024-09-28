@@ -30,7 +30,7 @@ class Die {
     long _nextReduceTime = REDUCE_RATE;
     static bool _optimizationPaused;
     vector<size_t> _labels;
-    size_t _lastOptimizedIndex=0;
+    size_t _lastOptimizedIndex = 0;
 
 public:
     Die(size_t sides, bool loadBest = false);
@@ -46,7 +46,7 @@ public:
     void save();
 
 
-    void draw(QPainter& img, bool highlightExtremes=true);
+    void draw(QPainter& img, bool highlightExtremes = true);
     vector<size_t> getLabels();
 };
 

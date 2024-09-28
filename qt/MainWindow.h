@@ -19,9 +19,9 @@ private slots:
     void onSideCountChanged(const QString& text);
 
 private:
-    QLineEdit* sideCountInput;
-    QPushButton* startButton;
-    unsigned int sideCount;
+    QLineEdit* _sideCountInput;
+    QPushButton* _startButton;
+    unsigned int _sideCount;
 };
 
 #endif // MAINWINDOW_H

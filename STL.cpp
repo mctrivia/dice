@@ -65,7 +65,8 @@ void writeTriangle(std::ofstream& file, const Vec3& normal, const Vec3& v1, cons
 }
 
 // Function to clip a polygon (triangle) against a plane and collect intersection points
-void clipPolygonWithPlane(const std::vector<Vec3>& polygon, const Plane& plane, std::vector<Vec3>& outPolygon, std::vector<Vec3>& intersectionPoints) {
+void clipPolygonWithPlane(const std::vector<Vec3>& polygon, const Plane& plane, std::vector<Vec3>& outPolygon,
+                          std::vector<Vec3>& intersectionPoints) {
     outPolygon.clear();
     size_t n = polygon.size();
     for (size_t i = 0; i < n; ++i) {
@@ -144,7 +145,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
     };
     std::vector<CuttingPlane> cuttingPlanes;
 
-    for (const Vec3& point : points) {
+    for (const Vec3& point: points) {
         Vec3 normal = point;
         normal.normalize();
         double d = normal.dot(point);
@@ -164,7 +165,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
     std::vector<std::vector<Vec3>> planeBoundaries(cuttingPlanes.size());
 
     // Process each face and apply the cuts
-    for (const auto& faceIndices : faces) {
+    for (const auto& faceIndices: faces) {
         std::vector<Vec3> polygon = {
                 vertices[faceIndices[0]],
                 vertices[faceIndices[1]],
@@ -198,7 +199,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
         for (size_t i = 1; i + 1 < clippedPolygon.size(); ++i) {
             Vec3 v0 = clippedPolygon[0];
             Vec3 v1 = clippedPolygon[i];
-            Vec3 v2 = clippedPolygon[i+1];
+            Vec3 v2 = clippedPolygon[i + 1];
 
             // Compute normal
             Vec3 edge1 = v1 - v0;
@@ -222,7 +223,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
         // Remove duplicate points
         std::vector<Vec3> boundaryPoints;
         std::unordered_set<Vec3, Vec3Hash, Vec3Equal> pointSet;
-        for (const auto& pt : intersectionPoints) {
+        for (const auto& pt: intersectionPoints) {
             if (pointSet.find(pt) == pointSet.end()) {
                 boundaryPoints.push_back(pt);
                 pointSet.insert(pt);
@@ -243,7 +244,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
 
         // Compute angles of boundary points around center
         std::vector<std::pair<double, Vec3>> anglePointPairs;
-        for (const auto& vertex : boundaryPoints) {
+        for (const auto& vertex: boundaryPoints) {
             Vec3 vec = vertex - center;
             double x = vec.dot(u);
             double y = vec.dot(v);
@@ -256,7 +257,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
 
         // Reconstruct the ordered boundary loop
         std::vector<Vec3> boundaryLoop;
-        for (const auto& ap : anglePointPairs) {
+        for (const auto& ap: anglePointPairs) {
             boundaryLoop.push_back(ap.second);
         }
 
@@ -292,9 +293,9 @@ double computeMaxRadius(const std::vector<Vec3>& points) {
     double minDist = std::numeric_limits<double>::max();
     size_t idx1 = 0, idx2 = 1;
 
-    for (size_t i = 0; i < points.size(); i+=2) {
+    for (size_t i = 0; i < points.size(); i += 2) {
         for (size_t j = i + 1; j < points.size(); ++j) {
-            if (i==j) continue;
+            if (i == j) continue;
             Vec3 diff = points[i] - points[j];
             double dist = diff.length();
             if (dist >= minDist) continue;

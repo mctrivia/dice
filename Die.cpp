@@ -37,9 +37,9 @@ void Die::optimize() {
     if (isOptimizationPaused()) return; //don't optimize if paused
 
     size_t optimizeIndex;
-    if (rand()%16==0) {
+    if (rand() % 16 == 0) {
         //occasionally just pick one at random
-        optimizeIndex = rand()%_current.sideCount();
+        optimizeIndex = rand() % _current.sideCount();
     } else {
         // Store distances and indices
         std::vector<std::pair<double, size_t>> distances;
@@ -67,7 +67,7 @@ void Die::optimize() {
 
         // Set _lastOptimizedIndex to the index of the randomly selected closest point
         _lastOptimizedIndex = distances[randomIndex].second;
-        optimizeIndex=_lastOptimizedIndex;
+        optimizeIndex = _lastOptimizedIndex;
     }
 
     //compute how much to move point
@@ -191,7 +191,8 @@ void Die::draw(QPainter& painter, bool highlightExtremes) {
 
             // Normalize stress between 0 and 1
             double stress = _best.getStress(j).length();
-            double normalizedStress = (stress - minStress) / (maxStress - minStress);  // Value between 0 (least stress) and 1 (most stress)
+            double normalizedStress = (stress - minStress) /
+                                      (maxStress - minStress);  // Value between 0 (least stress) and 1 (most stress)
 
             // Interpolate color between green (least stress) and red (most stress)
             int red = static_cast<int>(255 * normalizedStress);
@@ -200,10 +201,10 @@ void Die::draw(QPainter& painter, bool highlightExtremes) {
 
             // Draw the point if it's in front
             if (z >= 0) {
-                bool extreme=highlightExtremes&&((j/2 == minStressIndex/2) || (j/2 == maxStressIndex/2));
+                bool extreme = highlightExtremes && ((j / 2 == minStressIndex / 2) || (j / 2 == maxStressIndex / 2));
                 painter.setPen(Qt::NoPen);
                 painter.setBrush(pointColor);
-                painter.drawEllipse(QPointF(x, y), extreme?3:2, extreme?3:2);
+                painter.drawEllipse(QPointF(x, y), extreme ? 3 : 2, extreme ? 3 : 2);
             }
         }
     }

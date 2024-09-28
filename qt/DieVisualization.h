@@ -28,15 +28,14 @@ private slots:
     void onPointsButtonClicked();
     void onHighlightCheckboxChanged(int state);
 private:
-    std::array<Die*, THREAD_COUNT>& dieArray;
-    QMutex bestMutex;
-    QTimer* timer;
-    QPushButton* pointsButton;
-    QCheckBox* highlightCheckbox;
+    std::array<Die*, THREAD_COUNT>& _dieArray;
+    QMutex _bestMutex;
+    QTimer* _timer;
+    QPushButton* _pointsButton;
+    QCheckBox* _highlightCheckbox;
 
-    PointsWindow* pointsWindow;
-    bool optimizationPaused;
-    bool highlightExtremes;
+    PointsWindow* _pointsWindow;
+    bool _highlightExtremes;
 };
 
 #endif // DIEVISUALIZATION_H

@@ -236,7 +236,7 @@ double PointSphere::getTotalStress(bool lockWhileExecuting) {
     }
 
     // If the total stress has already been calculated, return it
-    if (_totalStress!=numeric_limits<double>::infinity()) return _totalStress;
+    if (_totalStress != numeric_limits<double>::infinity()) return _totalStress;
 
     //calculate total stress
     _totalStress = 0.0;
@@ -278,35 +278,37 @@ void PointSphere::movePoint(size_t sideIndex, const Vec3& value) {
     _points[index] = newValue;
 
     //clear caches
-    _lowestStressIndex=numeric_limits<size_t>::max();
-    _highestStressIndex=numeric_limits<size_t>::max();
-    _totalStress=numeric_limits<double>::infinity();
+    _lowestStressIndex = numeric_limits<size_t>::max();
+    _highestStressIndex = numeric_limits<size_t>::max();
+    _totalStress = numeric_limits<double>::infinity();
 }
 
 size_t PointSphere::getHighestStressIndex() {
     const std::lock_guard<std::mutex> lock(_mtx);
-    if (_highestStressIndex!=numeric_limits<size_t>::max()) return _highestStressIndex;
+    if (_highestStressIndex != numeric_limits<size_t>::max()) return _highestStressIndex;
 
-    double stress=0;
-    for (size_t i=0;i<_sideCount;i+=2) {    //skip every other since values will be identical
-        double currentStress=getStress(i,false).lengthSquared();  //don't care about actual value so use faster squared value
-        if (currentStress<=stress) continue;
-        stress=currentStress;
-        _highestStressIndex=i;
+    double stress = 0;
+    for (size_t i = 0; i < _sideCount; i += 2) {    //skip every other since values will be identical
+        double currentStress = getStress(i,
+                                         false).lengthSquared();  //don't care about actual value so use faster squared value
+        if (currentStress <= stress) continue;
+        stress = currentStress;
+        _highestStressIndex = i;
     }
     return _highestStressIndex;
 }
 
 size_t PointSphere::getLowestStressIndex() {
     const std::lock_guard<std::mutex> lock(_mtx);
-    if (_lowestStressIndex!=numeric_limits<size_t>::max()) return _lowestStressIndex;
+    if (_lowestStressIndex != numeric_limits<size_t>::max()) return _lowestStressIndex;
 
-    double stress=numeric_limits<double>::max();
-    for (size_t i=0;i<_sideCount;i+=2) {    //skip every other since values will be identical
-        double currentStress=getStress(i,false).lengthSquared();  //don't care about actual value so use faster squared value
-        if (currentStress>=stress) continue;
-        stress=currentStress;
-        _lowestStressIndex=i;
+    double stress = numeric_limits<double>::max();
+    for (size_t i = 0; i < _sideCount; i += 2) {    //skip every other since values will be identical
+        double currentStress = getStress(i,
+                                         false).lengthSquared();  //don't care about actual value so use faster squared value
+        if (currentStress >= stress) continue;
+        stress = currentStress;
+        _lowestStressIndex = i;
     }
     return _lowestStressIndex;
 }

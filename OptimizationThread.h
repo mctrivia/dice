@@ -14,17 +14,18 @@
 class OptimizationThread : public QThread {
 Q_OBJECT
 public:
-    OptimizationThread(size_t index, std::array<Die*, THREAD_COUNT>& dieArray, unsigned int sides,
+    OptimizationThread(size_t index, std::array<Die*, THREAD_COUNT>& dieArray, unsigned int sides, std::atomic<bool>& running,
                        QObject* parent = nullptr);
 
 protected:
     void run() override;
 
 private:
-    size_t index;
-    std::array<Die*, THREAD_COUNT>& dieArray;
-    unsigned int sides;
-    QMutex* bestMutex;  //todo should they not be static so all objects use same lock
+    size_t _index;
+    std::array<Die*, THREAD_COUNT>& _dieArray;
+    unsigned int _sides;
+    QMutex* _bestMutex;
+    std::atomic<bool>& _running;
 };
 
 #endif // OPTIMIZATIONTHREAD_H

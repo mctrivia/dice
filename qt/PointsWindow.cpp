@@ -20,43 +20,43 @@ PointsWindow::PointsWindow(double radius, std::array<Die*, THREAD_COUNT>& dieArr
             }
         }
     }
-    bestDie = dieArray[bestIndex];
+    _bestDie = dieArray[bestIndex];
 
 
     // Create the radius input
-    faceToCenterSpinBox = new QDoubleSpinBox(this);
-    faceToCenterSpinBox->setRange(0.0, 1000.0);
-    faceToCenterSpinBox->setValue(radius);
-    faceToCenterSpinBox->setDecimals(4);
-    faceToCenterSpinBox->setPrefix("Face to Center Distance: ");
+    _faceToCenterSpinBox = new QDoubleSpinBox(this);
+    _faceToCenterSpinBox->setRange(0.0, 1000.0);
+    _faceToCenterSpinBox->setValue(radius);
+    _faceToCenterSpinBox->setDecimals(4);
+    _faceToCenterSpinBox->setPrefix("Face to Center Distance: ");
 
     // Create the secondary radius box
-    radiusDoubleBox = new QDoubleSpinBox(this);
-    radiusDoubleBox->setDecimals(4);
-    radiusDoubleBox->setPrefix("Radius: ");
-    radiusDoubleBox->setRange(faceToCenterSpinBox->value(), maxRadius());
-    radiusDoubleBox->setValue(faceToCenterSpinBox->value());
+    _radiusDoubleBox = new QDoubleSpinBox(this);
+    _radiusDoubleBox->setDecimals(4);
+    _radiusDoubleBox->setPrefix("Radius: ");
+    _radiusDoubleBox->setRange(_faceToCenterSpinBox->value(), maxRadius());
+    _radiusDoubleBox->setValue(_faceToCenterSpinBox->value());
 
     // Create the "Build Model" button
-    buildModelButton = new QPushButton("Build Model", this);
+    _buildModelButton = new QPushButton("Build Model", this);
 
     // Create the table
-    pointsTable = new QTableWidget(this);
-    pointsTable->setColumnCount(4);
+    _pointsTable = new QTableWidget(this);
+    _pointsTable->setColumnCount(4);
     QStringList headers{"Label", "X", "Y", "Z"};
-    pointsTable->setHorizontalHeaderLabels(headers);
+    _pointsTable->setHorizontalHeaderLabels(headers);
 
     // Set headers to stay in place
-    pointsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    pointsTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    pointsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    _pointsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    _pointsTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    _pointsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     // Layout
     QVBoxLayout* layout = new QVBoxLayout(this);
-    layout->addWidget(faceToCenterSpinBox);
-    layout->addWidget(radiusDoubleBox);  // Add the secondary radius box to the layout
-    layout->addWidget(pointsTable);
-    layout->addWidget(buildModelButton);  // Add the Build Model button to the layout
+    layout->addWidget(_faceToCenterSpinBox);
+    layout->addWidget(_radiusDoubleBox);  // Add the secondary radius box to the layout
+    layout->addWidget(_pointsTable);
+    layout->addWidget(_buildModelButton);  // Add the Build Model button to the layout
     layout->setStretch(0, 0); // Radius input takes minimal space
     layout->setStretch(1, 1); // Table takes the rest
 
@@ -70,8 +70,9 @@ PointsWindow::PointsWindow(double radius, std::array<Die*, THREAD_COUNT>& dieArr
     }
 
     // Connect signals and slots
-    connect(faceToCenterSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &PointsWindow::updateRadiusRange);
-    connect(buildModelButton, &QPushButton::clicked, this, &PointsWindow::buildModel);
+    connect(_faceToCenterSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+            &PointsWindow::updateRadiusRange);
+    connect(_buildModelButton, &QPushButton::clicked, this, &PointsWindow::buildModel);
 
     // Initial population of the table
     populateTable();
@@ -79,74 +80,74 @@ PointsWindow::PointsWindow(double radius, std::array<Die*, THREAD_COUNT>& dieArr
 
 // Update the range for the secondary radius box
 void PointsWindow::updateRadiusRange() {
-    double cloudRadius = faceToCenterSpinBox->value();
-    double max=maxRadius();
-    double radius = radiusDoubleBox->value();
-    radiusDoubleBox->setRange(cloudRadius, max);
+    double cloudRadius = _faceToCenterSpinBox->value();
+    double max = maxRadius();
+    double radius = _radiusDoubleBox->value();
+    _radiusDoubleBox->setRange(cloudRadius, max);
     if ((radius < cloudRadius) || (radius > max)) {
-        radius= ((max - cloudRadius) / 2) + cloudRadius;//set to middle of range
+        radius = ((max - cloudRadius) / 2) + cloudRadius;//set to middle of range
     }
-    radiusDoubleBox->setValue(radius); // Set to the updated radius as default
+    _radiusDoubleBox->setValue(radius); // Set to the updated radius as default
     populateTable();
 }
 
 // Build model function to generate STL file
 void PointsWindow::buildModel() {
-    double cloudRadius = faceToCenterSpinBox->value();
+    double cloudRadius = _faceToCenterSpinBox->value();
 
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save STL File"), "", tr("STL Files (*.stl)"));
     if (!fileName.isEmpty()) {
         std::vector<Vec3> points;
-        for (size_t i = 0; i < bestDie->getBest().sideCount(); ++i) {
-            Vec3 point= bestDie->getBest().getPoint(i) * cloudRadius;
+        for (size_t i = 0; i < _bestDie->getBest().sideCount(); ++i) {
+            Vec3 point = _bestDie->getBest().getPoint(i) * cloudRadius;
             points.push_back(point);
         }
 
         // Run createSTL with the chosen radius from the secondary radius box
-        createSTL(radiusDoubleBox->value(), points, fileName.toStdString());
+        createSTL(_radiusDoubleBox->value(), points, fileName.toStdString());
     }
 }
 
 // Example stub function for computeMaxRadius (you'll replace this with actual logic)
 double PointsWindow::maxRadius() const {
-    double cloudRadius = faceToCenterSpinBox->value();
+    double cloudRadius = _faceToCenterSpinBox->value();
     std::vector<Vec3> points;
-    for (size_t i = 0; i < bestDie->getBest().sideCount(); ++i) {
-        Vec3 point= bestDie->getBest().getPoint(i) * cloudRadius;
+    for (size_t i = 0; i < _bestDie->getBest().sideCount(); ++i) {
+        Vec3 point = _bestDie->getBest().getPoint(i) * cloudRadius;
         points.push_back(point);
     }
     return computeMaxRadius(points);
 }
 
 void PointsWindow::populateTable() {
-    double cloudRadius = faceToCenterSpinBox->value();
+    double cloudRadius = _faceToCenterSpinBox->value();
 
     // Clear existing data
-    pointsTable->setRowCount(0);
+    _pointsTable->setRowCount(0);
 
     // Populate the table with points data
-    auto labels = bestDie->getLabels();
-    for (size_t i = 0; i < bestDie->getBest().sideCount(); ++i) {
-        const auto& point = bestDie->getBest().getPoint(i);
+    auto labels = _bestDie->getLabels();
+    for (size_t i = 0; i < _bestDie->getBest().sideCount(); ++i) {
+        const auto& point = _bestDie->getBest().getPoint(i);
 
-        int row = pointsTable->rowCount();
-        pointsTable->insertRow(row);
+        int row = _pointsTable->rowCount();
+        _pointsTable->insertRow(row);
 
         //label
         QTableWidgetItem* lItem = new QTableWidgetItem(QString::number(labels[i], 10));
-        pointsTable->setItem(row, 0, lItem);
+        _pointsTable->setItem(row, 0, lItem);
 
         // X coordinate
         QTableWidgetItem* xItem = new QTableWidgetItem(QString::number(point.x * cloudRadius, 'f', 6));
-        pointsTable->setItem(row, 1, xItem);
+        _pointsTable->setItem(row, 1, xItem);
 
         // Y coordinate
         QTableWidgetItem* yItem = new QTableWidgetItem(QString::number(point.y * cloudRadius, 'f', 6));
-        pointsTable->setItem(row, 2, yItem);
+        _pointsTable->setItem(row, 2, yItem);
 
         // Z coordinate
         QTableWidgetItem* zItem = new QTableWidgetItem(QString::number(point.z * cloudRadius, 'f', 6));
-        pointsTable->setItem(row, 3, zItem);
+        _pointsTable->setItem(row, 3, zItem);
     }
 }
 

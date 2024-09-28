@@ -43,7 +43,7 @@ void PT::print() {
 
     cout << string(labelWidth + callsWidth + avgTimeWidth + totalTimeWidth, '-') << endl;
 
-    for (const auto& entry : _timingData) {
+    for (const auto& entry: _timingData) {
         const std::string& label = entry.first;
         const TimingData& data = entry.second;
 

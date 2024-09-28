@@ -17,7 +17,7 @@ bool isValidEvenNumber(const string& input) {
     return number > 0 && number % 2 == 0;
 }
 
-MainWindow::MainWindow(QWidget* parent) : QWidget(parent), sideCount(0) {
+MainWindow::MainWindow(QWidget* parent) : QWidget(parent), _sideCount(0) {
     // Description labels
     QLabel* descriptionLabel = new QLabel(
             "This app tries to calculate the optimal placement\n"
@@ -29,15 +29,15 @@ MainWindow::MainWindow(QWidget* parent) : QWidget(parent), sideCount(0) {
 
     // Side count input
     QLabel* sideCountLabel = new QLabel("Number of sides:");
-    sideCountInput = new QLineEdit();
-    sideCountInput->setValidator(new QIntValidator(2, 4000, this)); // Assuming a reasonable upper limit
+    _sideCountInput = new QLineEdit();
+    _sideCountInput->setValidator(new QIntValidator(2, 4000, this)); // Assuming a reasonable upper limit
 
-    connect(sideCountInput, &QLineEdit::textChanged, this, &MainWindow::onSideCountChanged);
+    connect(_sideCountInput, &QLineEdit::textChanged, this, &MainWindow::onSideCountChanged);
 
     // Start button
-    startButton = new QPushButton("Start");
-    startButton->setEnabled(false); // Disabled until valid input
-    connect(startButton, &QPushButton::clicked, this, &MainWindow::onStartButtonClicked);
+    _startButton = new QPushButton("Start");
+    _startButton->setEnabled(false); // Disabled until valid input
+    connect(_startButton, &QPushButton::clicked, this, &MainWindow::onStartButtonClicked);
 
     // Layout setup
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
@@ -45,23 +45,23 @@ MainWindow::MainWindow(QWidget* parent) : QWidget(parent), sideCount(0) {
 
     QHBoxLayout* inputLayout = new QHBoxLayout();
     inputLayout->addWidget(sideCountLabel);
-    inputLayout->addWidget(sideCountInput);
+    inputLayout->addWidget(_sideCountInput);
     mainLayout->addLayout(inputLayout);
 
-    mainLayout->addWidget(startButton);
+    mainLayout->addWidget(_startButton);
     setLayout(mainLayout);
 }
 
 void MainWindow::onSideCountChanged(const QString& text) {
     bool validInput = isValidEvenNumber(text.toStdString());
-    startButton->setEnabled(validInput);
+    _startButton->setEnabled(validInput);
 }
 
 void MainWindow::onStartButtonClicked() {
-    sideCount = sideCountInput->text().toUInt();
+    _sideCount = _sideCountInput->text().toUInt();
     close(); // Close the input window
 }
 
 unsigned int MainWindow::getSideCount() const {
-    return sideCount;
+    return _sideCount;
 }

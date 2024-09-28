@@ -20,11 +20,11 @@ public slots:
     void updateTable();
 
 private:
-    QDoubleSpinBox* faceToCenterSpinBox;
-    QDoubleSpinBox* radiusDoubleBox;
-    QTableWidget* pointsTable;
-    QPushButton* buildModelButton;
-    Die* bestDie;
+    QDoubleSpinBox* _faceToCenterSpinBox;
+    QDoubleSpinBox* _radiusDoubleBox;
+    QTableWidget* _pointsTable;
+    QPushButton* _buildModelButton;
+    Die* _bestDie;
     double maxRadius() const;
     void buildModel();
     void updateRadiusRange();
