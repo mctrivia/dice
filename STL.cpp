@@ -10,9 +10,11 @@
 #include <set>
 #include <algorithm>
 #include <unordered_set>
+#include <cstring>
 #include "STL.h"
 
-// Hash and Equality functions for Vec3
+using namespace std;
+
 struct Vec3Hash {
     std::size_t operator()(const Vec3& v) const {
         std::hash<double> hasher;
@@ -33,18 +35,15 @@ struct Vec3Equal {
 };
 
 struct Plane {
-    Vec3 normal;
-    double d; // plane equation: normal.dot(point) = d
+    Vec3 _normal;
+    double _d; // plane equation: normal.dot(point) = d
 
-    Plane(const Vec3& normal_, double d_) : normal(normal_), d(d_) {}
+    Plane(const Vec3& normal_, double d_) : _normal(normal_), _d(d_) {}
 
-    // Compute signed distance from point to plane
     double distance(const Vec3& point) const {
-        return normal.dot(point) - d;
+        return _normal.dot(point) - _d;
     }
 
-    // Compute intersection point between edge (v0, v1) and plane
-    // Assumes that v0 and v1 are on opposite sides of the plane
     Vec3 intersect(const Vec3& v0, const Vec3& v1) const {
         double dist0 = distance(v0);
         double dist1 = distance(v1);
@@ -53,15 +52,14 @@ struct Plane {
     }
 };
 
-// Helper function to write a single triangle to the STL file
-void writeTriangle(std::ofstream& file, const Vec3& normal, const Vec3& v1, const Vec3& v2, const Vec3& v3) {
-    file << "  facet normal " << normal.x << " " << normal.y << " " << normal.z << "\n";
-    file << "    outer loop\n";
-    file << "      vertex " << v1.x << " " << v1.y << " " << v1.z << "\n";
-    file << "      vertex " << v2.x << " " << v2.y << " " << v2.z << "\n";
-    file << "      vertex " << v3.x << " " << v3.y << " " << v3.z << "\n";
-    file << "    endloop\n";
-    file << "  endfacet\n";
+// We will store all triangles here and write them at the end
+// Each triangle: [0] = normal, [1] = v0, [2] = v1, [3] = v2
+static std::vector<std::array<Vec3,4>> _triangles;
+
+// Store a triangle for later writing in binary format
+void storeTriangle(const Vec3& normal, const Vec3& v1, const Vec3& v2, const Vec3& v3) {
+    std::array<Vec3,4> tri = {normal, v1, v2, v3};
+    _triangles.push_back(tri);
 }
 
 // Function to clip a polygon (triangle) against a plane and collect intersection points
@@ -80,30 +78,29 @@ void clipPolygonWithPlane(const std::vector<Vec3>& polygon, const Plane& plane, 
 
         if (currInside) {
             if (!prevInside) {
-                // Edge from outside to inside, add intersection point
                 Vec3 intersectPoint = plane.intersect(prevVertex, currVertex);
                 outPolygon.push_back(intersectPoint);
                 intersectionPoints.push_back(intersectPoint);
             }
-            // Add current vertex
             outPolygon.push_back(currVertex);
         } else if (prevInside) {
-            // Edge from inside to outside, add intersection point
             Vec3 intersectPoint = plane.intersect(prevVertex, currVertex);
             outPolygon.push_back(intersectPoint);
             intersectionPoints.push_back(intersectPoint);
         }
-        // Else, both outside, do nothing
     }
 }
 
 void createSTL(double r, const std::vector<Vec3>& points, const std::string& fileName) {
+    _triangles.clear(); // Clear any previously stored triangles
+
     // Number of divisions for latitude and longitude
-    const int latDiv = 100;  // Increase divisions for smoother sphere
+    const int latDiv = 100;
     const int lonDiv = 100;
 
     // Generate sphere vertices
     std::vector<Vec3> vertices;
+    vertices.reserve((latDiv+1)*(lonDiv+1));
     for (int i = 0; i <= latDiv; ++i) {
         double theta = i * M_PI / latDiv;
         double sinTheta = sin(theta);
@@ -125,23 +122,20 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
 
     // Generate sphere faces (triangles)
     std::vector<std::array<int, 3>> faces;
+    faces.reserve(latDiv*lonDiv*2);
     for (int i = 0; i < latDiv; ++i) {
         for (int j = 0; j < lonDiv; ++j) {
             int first = i * (lonDiv + 1) + j;
             int second = first + lonDiv + 1;
 
-            // First triangle
             faces.push_back({first, second, first + 1});
-
-            // Second triangle
             faces.push_back({second, second + 1, first + 1});
         }
     }
 
-    // Prepare the cutting planes
     struct CuttingPlane {
-        Plane plane;
-        Vec3 point; // point used to define the plane
+        Plane _plane;
+        Vec3 _point;
     };
     std::vector<CuttingPlane> cuttingPlanes;
 
@@ -151,15 +145,6 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
         double d = normal.dot(point);
         cuttingPlanes.push_back({Plane(normal, d), point});
     }
-
-    // Open the STL file for writing
-    std::ofstream file(fileName);
-    if (!file.is_open()) {
-        std::cerr << "Unable to open file " << fileName << " for writing.\n";
-        return;
-    }
-
-    file << "solid sphere\n";
 
     // For each cutting plane, maintain a list of intersection points
     std::vector<std::vector<Vec3>> planeBoundaries(cuttingPlanes.size());
@@ -178,9 +163,8 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
         for (size_t p = 0; p < cuttingPlanes.size(); ++p) {
             std::vector<Vec3> tempPolygon;
             std::vector<Vec3> intersectionPoints;
-            clipPolygonWithPlane(clippedPolygon, cuttingPlanes[p].plane, tempPolygon, intersectionPoints);
+            clipPolygonWithPlane(clippedPolygon, cuttingPlanes[p]._plane, tempPolygon, intersectionPoints);
 
-            // Collect intersection points
             planeBoundaries[p].insert(planeBoundaries[p].end(), intersectionPoints.begin(), intersectionPoints.end());
 
             clippedPolygon = tempPolygon;
@@ -195,7 +179,6 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
         }
 
         // Triangulate the polygon (assuming convexity)
-        // For n-vertex polygon, create n-2 triangles
         for (size_t i = 1; i + 1 < clippedPolygon.size(); ++i) {
             Vec3 v0 = clippedPolygon[0];
             Vec3 v1 = clippedPolygon[i];
@@ -207,8 +190,8 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
             Vec3 faceNormal = edge1.cross(edge2);
             faceNormal.normalize();
 
-            // Write triangle
-            writeTriangle(file, faceNormal, v0, v1, v2);
+            // Store triangle
+            storeTriangle(faceNormal, v0, v1, v2);
         }
     }
 
@@ -220,7 +203,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
             continue;
         }
 
-        // Remove duplicate points
+        // Remove duplicates
         std::vector<Vec3> boundaryPoints;
         std::unordered_set<Vec3, Vec3Hash, Vec3Equal> pointSet;
         for (const auto& pt: intersectionPoints) {
@@ -230,9 +213,8 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
             }
         }
 
-        // Project boundary vertices onto 2D plane for sorting
-        Vec3 normal = cuttingPlanes[p].plane.normal;
-        Vec3 center = cuttingPlanes[p].point;
+        Vec3 normal = cuttingPlanes[p]._plane._normal;
+        Vec3 center = cuttingPlanes[p]._point;
 
         Vec3 u;
         if (fabs(normal.x) > 1e-6 || fabs(normal.y) > 1e-6) {
@@ -242,7 +224,7 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
         }
         Vec3 v = normal.cross(u);
 
-        // Compute angles of boundary points around center
+        // Compute angles
         std::vector<std::pair<double, Vec3>> anglePointPairs;
         for (const auto& vertex: boundaryPoints) {
             Vec3 vec = vertex - center;
@@ -252,10 +234,10 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
             anglePointPairs.emplace_back(angle, vertex);
         }
 
-        // Sort the points by angle
+        // Sort by angle
         std::sort(anglePointPairs.begin(), anglePointPairs.end());
 
-        // Reconstruct the ordered boundary loop
+        // Rebuild boundary loop
         std::vector<Vec3> boundaryLoop;
         for (const auto& ap: anglePointPairs) {
             boundaryLoop.push_back(ap.second);
@@ -273,15 +255,51 @@ void createSTL(double r, const std::vector<Vec3>& points, const std::string& fil
                 std::swap(v0, v1);
             }
 
-            // Write triangle
-            writeTriangle(file, normal, v0, v1, v2);
+            storeTriangle(normal, v0, v1, v2);
         }
     }
 
-    file << "endsolid sphere\n";
+    // Now write the binary STL file
+    std::ofstream file(fileName, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Unable to open file " << fileName << " for writing.\n";
+        return;
+    }
+
+    // 80-byte header (can be anything)
+    char header[80] = {};
+    std::string title = "Binary STL sphere";
+    std::memcpy(header, title.c_str(), std::min<size_t>(title.size(),79));
+    file.write(header, 80);
+
+    // Number of triangles
+    uint32_t triCount = static_cast<uint32_t>(_triangles.size());
+    file.write(reinterpret_cast<char*>(&triCount), sizeof(triCount));
+
+    // Write each triangle
+    // STL requires floats, so convert double to float
+    for (const auto& tri : _triangles) {
+        // tri[0] = normal, tri[1..3] = vertices
+        // normal
+        for (int i = 0; i < 4; i++) {
+            const Vec3& v = tri[i];
+            float fx = (float)v.x;
+            float fy = (float)v.y;
+            float fz = (float)v.z;
+            file.write(reinterpret_cast<char*>(&fx), sizeof(float));
+            file.write(reinterpret_cast<char*>(&fy), sizeof(float));
+            file.write(reinterpret_cast<char*>(&fz), sizeof(float));
+        }
+
+        // Attribute byte count
+        uint16_t attributeCount = 0;
+        file.write(reinterpret_cast<char*>(&attributeCount), sizeof(attributeCount));
+    }
+
     file.close();
-    std::cout << "STL file " << fileName << " has been created.\n";
+    std::cout << "Binary STL file " << fileName << " has been created.\n";
 }
+
 
 double computeMaxRadius(const std::vector<Vec3>& points) {
     if (points.size() < 2) {
@@ -289,7 +307,6 @@ double computeMaxRadius(const std::vector<Vec3>& points) {
         return -1.0;
     }
 
-    // Step 1: Find the two closest points
     double minDist = std::numeric_limits<double>::max();
     size_t idx1 = 0, idx2 = 1;
 
@@ -308,7 +325,6 @@ double computeMaxRadius(const std::vector<Vec3>& points) {
     Vec3 P1 = points[idx1];
     Vec3 P2 = points[idx2];
 
-    // Step 2: Define the normals and distances for the two planes
     double d1 = P1.length();
     double d2 = P2.length();
 
@@ -320,19 +336,17 @@ double computeMaxRadius(const std::vector<Vec3>& points) {
     Vec3 n1 = P1.normalize();
     Vec3 n2 = P2.normalize();
 
-    // Step 3: Compute the numerator and denominator for the radius formula
     Vec3 numeratorVec = (n1 * d2) - (n2 * d1);
     double numerator = numeratorVec.length();
 
     Vec3 crossProd = n1.cross(n2);
     double denominator = crossProd.length();
 
-    if (denominator < 1e-6) { // Check if planes are parallel or coincident
+    if (denominator < 1e-6) {
         std::cerr << "Error: The two closest points define parallel or coincident planes.\n";
         return -1.0;
     }
 
-    // Step 4: Compute the radius
     double r = numerator / denominator;
 
     return r;
