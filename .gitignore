@@ -1,4 +1,6 @@
 .*
+!.github
+!.gitignore
 build/*
 cmake-build-debug/*
 *.sh

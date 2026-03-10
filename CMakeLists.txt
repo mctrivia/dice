@@ -56,6 +56,10 @@ if(WIN32)
 elseif(APPLE)
     target_link_libraries(dice "-framework Cocoa")
     set_target_properties(dice PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_BUNDLE_NAME "Dice Optimizer"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1.0"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
             BUILD_WITH_INSTALL_RPATH TRUE
             INSTALL_RPATH "@loader_path/../Frameworks"
             )

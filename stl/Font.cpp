@@ -290,6 +290,8 @@ FontGlyph buildGlyph(FontStyle style, size_t label, double scale, int maxDigits)
             return fontSeg7Impl(label, scale, maxDigits, 0.12, 0.02);
         case FontStyle::Pixel:
             return fontPixelImpl(label, scale, maxDigits);
+        case FontStyle::Blank:
+            return FontGlyph{};   // empty engRects → solid smooth face
         case FontStyle::Seg7:
         default:
             return fontSeg7Impl(label, scale, maxDigits, 0.20, 0.03);

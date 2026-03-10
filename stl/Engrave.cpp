@@ -110,7 +110,12 @@ void createEngravedFace(const std::vector<Vec3>& boundaryLoop,
         (void)C1; (void)R1; // suppress unused-variable warning
     }
 
-    if (engRects.empty()) return;
+    if (engRects.empty()) {
+        // No engraving: fill the rectangle with just 2 triangles and done.
+        addTri(to3D(bx0, by0), to3D(bx1, by0), to3D(bx1, by1));
+        addTri(to3D(bx0, by0), to3D(bx1, by1), to3D(bx0, by1));
+        return;
+    }
 
     // -----------------------------------------------------------------------
     // Fill the rectangle interior at face level, cutting out the engRects.

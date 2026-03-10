@@ -9,6 +9,7 @@ enum class FontStyle {
     Seg7,       // Classic 7-segment display
     ThinSeg7,   // 7-segment with fine strokes
     Pixel,      // 5x7 dot-matrix pixel grid
+    Blank,      // No engraving — smooth faces
 };
 
 // Build a glyph (digit segments + orientation indicator) for the given style.

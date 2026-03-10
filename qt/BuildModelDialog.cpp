@@ -19,6 +19,7 @@ BuildModelDialog::BuildModelDialog(QWidget* parent)
     _fontCombo->addItem(tr("7-Segment"),      (int)FontStyle::Seg7);
     _fontCombo->addItem(tr("7-Segment Thin"), (int)FontStyle::ThinSeg7);
     _fontCombo->addItem(tr("Dot Matrix"),     (int)FontStyle::Pixel);
+    _fontCombo->addItem(tr("Blank"),          (int)FontStyle::Blank);
 
     _depthSpin = new QDoubleSpinBox(this);
     _depthSpin->setRange(0.01, 10.0);

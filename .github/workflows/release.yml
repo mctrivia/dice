@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:   # allows manual test runs without a tag
+
+jobs:
+  # ─────────────────────────── macOS ────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.7.3'
+          cache: true
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(sysctl -n hw.ncpu)
+
+      - name: Package DMG
+        run: |
+          macdeployqt build/dice.app -dmg
+          mv build/dice.dmg dice-macos.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dice-macos
+          path: dice-macos.dmg
+
+  # ─────────────────────────── Windows ──────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.7.3'
+          cache: true
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Package ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist
+          Copy-Item build\Release\dice.exe dist\
+          windeployqt dist\dice.exe --release --no-translations
+          Compress-Archive -Path dist\* -DestinationPath dice-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dice-windows
+          path: dice-windows.zip
+
+  # ─────────────────────────── Linux ────────────────────────────
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qtbase5-dev libqt5widgets5 \
+            cmake build-essential libfuse2
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - name: Create AppImage
+        run: |
+          # Download linuxdeployqt
+          wget -q -O linuxdeployqt \
+            https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod +x linuxdeployqt
+
+          # Set up AppDir layout
+          mkdir -p AppDir/usr/bin \
+                   AppDir/usr/share/applications \
+                   AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp build/dice AppDir/usr/bin/
+
+          # Desktop entry
+          cat > AppDir/usr/share/applications/dice.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Name=Dice Optimizer
+          Exec=dice
+          Icon=dice
+          Type=Application
+          Categories=Utility;
+          DESKTOP
+
+          # Generate a 256x256 PNG icon using only Python stdlib
+          python3 << 'PY'
+          import struct, zlib
+          def make_png(w, h, rows):
+              def chunk(tag, data):
+                  c = tag + data
+                  return struct.pack('>I', len(data)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
+              raw = b''.join(b'\x00' + bytes([v for px in row for v in px]) for row in rows)
+              return (b'\x89PNG\r\n\x1a\n'
+                      + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0))
+                      + chunk(b'IDAT', zlib.compress(raw))
+                      + chunk(b'IEND', b''))
+          W = H = 256
+          pips = [(-50,-70),(50,-70),(-50,0),(50,0),(-50,70),(50,70)]
+          rows = []
+          for y in range(H):
+              row = []
+              for x in range(W):
+                  mx, my = x - 128, y - 128
+                  ax, ay = abs(mx) - 88, abs(my) - 88
+                  body = (ax<=0 or ay<=0 or ax*ax+ay*ay<=1600) and abs(mx)<108 and abs(my)<108
+                  pip  = body and any((mx-px)**2+(my-py)**2 < 484 for px,py in pips)
+                  row.append((220,230,255) if pip else (30,30,60) if body else (0,0,0))
+              rows.append(row)
+          with open('AppDir/usr/share/icons/hicolor/256x256/apps/dice.png','wb') as f:
+              f.write(make_png(W, H, rows))
+          PY
+
+          # Build AppImage (FUSE not needed in CI — use extract-and-run)
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 \
+            ./linuxdeployqt AppDir/usr/share/applications/dice.desktop \
+            -appimage 2>&1 | tail -10
+
+          mv ./*.AppImage dice-linux.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dice-linux
+          path: dice-linux.AppImage
+
+  # ──────────────────── Publish GitHub Release ──────────────────
+  release:
+    needs: [build-macos, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    # Only publish a real release when triggered by a tag push
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dice-macos/dice-macos.dmg
+            dice-windows/dice-windows.zip
+            dice-linux/dice-linux.AppImage

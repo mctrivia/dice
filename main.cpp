@@ -13,12 +13,39 @@
 #include "qt/DieVisualization.h"
 #include <QApplication>
 #include <QDir>
+#include <QIcon>
+#include <QPainter>
+#include <QPixmap>
 #include <QTimer>
 #include <iomanip>
 #include <QPushButton>
 #include <QCheckBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+
+// Programmatically generated die icon: a rounded die face with six pips.
+static QIcon createDiceIcon() {
+    QPixmap pm(256, 256);
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing);
+
+    // Body: dark rounded square with a thin border
+    p.setBrush(QColor(30, 30, 60));
+    p.setPen(QPen(QColor(100, 120, 200), 10));
+    p.drawRoundedRect(12, 12, 232, 232, 40, 40);
+
+    // Six pips in a 2x3 grid
+    p.setBrush(QColor(220, 230, 255));
+    p.setPen(Qt::NoPen);
+    const int cx[2] = { 82, 174 };
+    const int cy[3] = { 75, 128, 181 };
+    for (int col = 0; col < 2; ++col)
+        for (int row = 0; row < 3; ++row)
+            p.drawEllipse(QPoint(cx[col], cy[row]), 24, 24);
+
+    return QIcon(pm);
+}
 
 using namespace std;
 
@@ -61,6 +88,7 @@ int main(int argc, char* argv[]) {
 
     if (!headlessMode) {
         app = new QApplication(argc, argv);
+        app->setWindowIcon(createDiceIcon());
         QDir::setCurrent(QCoreApplication::applicationDirPath() + "/..");
         mainWindow = new MainWindow();
         mainWindow->show();
