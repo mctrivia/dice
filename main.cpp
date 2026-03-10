@@ -89,6 +89,9 @@ int main(int argc, char* argv[]) {
     if (!headlessMode) {
         app = new QApplication(argc, argv);
         app->setWindowIcon(createDiceIcon());
+        // Prevent the dialog closing from posting a quit event before the
+        // visualization window is shown.  We re-enable it manually below.
+        app->setQuitOnLastWindowClosed(false);
         QDir::setCurrent(QCoreApplication::applicationDirPath() + "/..");
         mainWindow = new MainWindow();
         // exec() runs its own nested event loop and returns when accept/reject is called
@@ -206,6 +209,10 @@ int main(int argc, char* argv[]) {
                          });
 
         container->show();
+
+        // Visualization is now visible — restore normal quit-on-close behaviour
+        // so that closing the visualization window exits the event loop.
+        app->setQuitOnLastWindowClosed(true);
 
         // Run the GUI event loop
         app->exec();
