@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget* parent) : QWidget(parent), _sideCount(0) {
     _sideCountInput->setValidator(new QIntValidator(2, 4000, this)); // Assuming a reasonable upper limit
 
     connect(_sideCountInput, &QLineEdit::textChanged, this, &MainWindow::onSideCountChanged);
+    connect(_sideCountInput, &QLineEdit::returnPressed, this, &MainWindow::onStartButtonClicked);
 
     // Start button
     _startButton = new QPushButton("Start");
@@ -58,6 +59,7 @@ void MainWindow::onSideCountChanged(const QString& text) {
 }
 
 void MainWindow::onStartButtonClicked() {
+    if (!_startButton->isEnabled()) return;
     _sideCount = _sideCountInput->text().toUInt();
     close(); // Close the input window
 }

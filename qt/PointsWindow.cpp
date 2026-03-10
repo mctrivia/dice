@@ -1,7 +1,6 @@
 #include "PointsWindow.h"
-#include <QFileDialog>
+#include "stl/STL.h"
 #include <limits>
-#include "STL.h"
 #include <QHeaderView>
 
 
@@ -37,9 +36,6 @@ PointsWindow::PointsWindow(double radius, std::array<Die*, THREAD_COUNT>& dieArr
     _radiusDoubleBox->setRange(_faceToCenterSpinBox->value(), maxRadius());
     _radiusDoubleBox->setValue(_faceToCenterSpinBox->value());
 
-    // Create the "Build Model" button
-    _buildModelButton = new QPushButton("Build Model", this);
-
     // Create the table
     _pointsTable = new QTableWidget(this);
     _pointsTable->setColumnCount(4);
@@ -56,7 +52,6 @@ PointsWindow::PointsWindow(double radius, std::array<Die*, THREAD_COUNT>& dieArr
     layout->addWidget(_faceToCenterSpinBox);
     layout->addWidget(_radiusDoubleBox);  // Add the secondary radius box to the layout
     layout->addWidget(_pointsTable);
-    layout->addWidget(_buildModelButton);  // Add the Build Model button to the layout
     layout->setStretch(0, 0); // Radius input takes minimal space
     layout->setStretch(1, 1); // Table takes the rest
 
@@ -72,7 +67,6 @@ PointsWindow::PointsWindow(double radius, std::array<Die*, THREAD_COUNT>& dieArr
     // Connect signals and slots
     connect(_faceToCenterSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
             &PointsWindow::updateRadiusRange);
-    connect(_buildModelButton, &QPushButton::clicked, this, &PointsWindow::buildModel);
 
     // Initial population of the table
     populateTable();
@@ -89,23 +83,6 @@ void PointsWindow::updateRadiusRange() {
     }
     _radiusDoubleBox->setValue(radius); // Set to the updated radius as default
     populateTable();
-}
-
-// Build model function to generate STL file
-void PointsWindow::buildModel() {
-    double cloudRadius = _faceToCenterSpinBox->value();
-
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save STL File"), "", tr("STL Files (*.stl)"));
-    if (!fileName.isEmpty()) {
-        std::vector<Vec3> points;
-        for (size_t i = 0; i < _bestDie->getBest().sideCount(); ++i) {
-            Vec3 point = _bestDie->getBest().getPoint(i) * cloudRadius;
-            points.push_back(point);
-        }
-
-        // Run createSTL with the chosen radius from the secondary radius box
-        createSTL(_radiusDoubleBox->value(), points, fileName.toStdString());
-    }
 }
 
 // Example stub function for computeMaxRadius (you'll replace this with actual logic)

@@ -12,8 +12,13 @@
 #include "qt/MainWindow.h"
 #include "qt/DieVisualization.h"
 #include <QApplication>
+#include <QDir>
 #include <QTimer>
 #include <iomanip>
+#include <QPushButton>
+#include <QCheckBox>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 
 using namespace std;
 
@@ -52,9 +57,11 @@ int main(int argc, char* argv[]) {
     QApplication* app = nullptr;
     MainWindow* mainWindow = nullptr;
     DieVisualization* visualization = nullptr;
+    QWidget* container = nullptr;
 
     if (!headlessMode) {
         app = new QApplication(argc, argv);
+        QDir::setCurrent(QCoreApplication::applicationDirPath() + "/..");
         mainWindow = new MainWindow();
         mainWindow->show();
 
@@ -130,9 +137,49 @@ int main(int argc, char* argv[]) {
         bestThread.join();
         saveThread.join();
     } else {
-        // Create the visualization window
+        // Create the visualization window inside a container with a button bar
+        container = new QWidget();
+        QVBoxLayout* containerLayout = new QVBoxLayout(container);
+        containerLayout->setContentsMargins(0, 0, 0, 0);
+        containerLayout->setSpacing(0);
+
         visualization = new DieVisualization(dieArray);
-        visualization->show();
+        containerLayout->addWidget(visualization, 1);
+
+        QWidget* bottomBar = new QWidget();
+        QHBoxLayout* bottomLayout = new QHBoxLayout(bottomBar);
+        bottomLayout->setContentsMargins(10, 4, 10, 4);
+
+        QCheckBox* highlightCheckbox = new QCheckBox("Highlight Extremes");
+        highlightCheckbox->setChecked(true);
+        bottomLayout->addWidget(highlightCheckbox);
+        bottomLayout->addStretch();
+
+        QPushButton* buildModelButton = new QPushButton("Build Model");
+        buildModelButton->setFixedSize(120, 30);
+        buildModelButton->setVisible(false);
+        bottomLayout->addWidget(buildModelButton);
+
+        QPushButton* pointsButton = new QPushButton("Points Show");
+        pointsButton->setFixedSize(120, 30);
+        bottomLayout->addWidget(pointsButton);
+
+        containerLayout->addWidget(bottomBar);
+
+        QObject::connect(buildModelButton, &QPushButton::clicked, visualization, &DieVisualization::buildModel);
+        QObject::connect(pointsButton, &QPushButton::clicked, visualization, &DieVisualization::togglePoints);
+        // stateChanged(int) works on both Qt5 and Qt6; checkStateChanged is Qt6-only.
+        QObject::connect(highlightCheckbox, &QCheckBox::stateChanged, visualization,
+                         [visualization](int state) {
+                             visualization->setHighlightExtremes(state == Qt::Checked);
+                         });
+        QObject::connect(visualization, &DieVisualization::pointsWindowToggled, pointsButton,
+                         [pointsButton, buildModelButton](bool showing) {
+                             pointsButton->setText(showing ? "Points Hide" : "Points Show");
+                             buildModelButton->setVisible(showing);
+                         });
+
+        container->show();
 
         // Run the GUI event loop
         app->exec();
@@ -173,7 +220,7 @@ int main(int argc, char* argv[]) {
     }
     if (app) delete app;
     if (mainWindow) delete mainWindow;
-    if (visualization) delete visualization;
+    if (container) delete container;
 
     return 0;
 }

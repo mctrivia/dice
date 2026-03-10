@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <filesystem>
 #include "PointSphere.h"
 #include <limits>
 
@@ -136,6 +137,9 @@ double PointSphere::load() {
 void PointSphere::save(double rate) {
     //compute file name
     const string filename = "best/" + to_string(_sideCount) + ".csv";
+
+    //create directory if it doesn't exist
+    std::filesystem::create_directories("best");
 
     //make sure read and writes not at the same time
     const std::lock_guard<std::mutex> lock(_mtx);

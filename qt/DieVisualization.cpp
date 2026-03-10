@@ -1,60 +1,24 @@
 #include "DieVisualization.h"
 #include "PointsWindow.h"
+#include "BuildModelDialog.h"
 #include <QPainter>
 #include <QTimer>
 #include <QMessageBox>
-#include <QCheckBox>
+#include "stl/STL.h"
 
 DieVisualization::DieVisualization(std::array<Die*, THREAD_COUNT>& dieArray, QWidget* parent)
         : QWidget(parent), _dieArray(dieArray), _pointsWindow(nullptr), _highlightExtremes(true) {
     setMinimumSize(744, 328);
+    resize(744, 328);
 
-    // Set size policy to allow the layout to use heightForWidth()
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     _timer = new QTimer(this);
     connect(_timer, &QTimer::timeout, this, &DieVisualization::updateVisualization);
     _timer->start(50); // Update every 50 ms
 
-
-
-
-    // Create the checkbox for "Highlight Extremes"
-    _highlightCheckbox = new QCheckBox("Highlight Extremes", this);
-    _highlightCheckbox->setChecked(true);  // Default to checked (true)
-
-    // Position the checkbox above the contribution text in the bottom left
-    int checkboxX = 10;  // 10 pixels from left edge
-    int checkboxY = rect().height() - 55; // 55 pixels from bottom edge (above the contribution text)
-    _highlightCheckbox->move(checkboxX, checkboxY);
-
-    // Connect the checkbox state change to the slot
-    connect(_highlightCheckbox, &QCheckBox::stateChanged, this, &DieVisualization::onHighlightCheckboxChanged);
-
-
-
-    // Create the "Points" button
-    _pointsButton = new QPushButton("Points Show", this);
-    _pointsButton->setFixedSize(120, 30); // Set button size
-
-    // Position the button and checkbox initially
-    int buttonWidth = _pointsButton->width();
-    int buttonHeight = _pointsButton->height();
-    int x = width() - buttonWidth - 10; // 10 pixels from right edge
-    int y = height() - buttonHeight - 10; // 10 pixels from bottom edge
-    _pointsButton->move(x, y);
-
-    // Connect the button's clicked signal to a slot
-    connect(_pointsButton, &QPushButton::clicked, this, &DieVisualization::onPointsButtonClicked);
-
-
-
-
-
-
-    // Ensure the window appears in front and is activated
-    raise();               // Bring the window to the front
-    activateWindow();       // Give the window focus
+    raise();
+    activateWindow();
 }
 
 void DieVisualization::updateVisualization() {
@@ -110,7 +74,7 @@ void DieVisualization::paintEvent(QPaintEvent* event) {
     painter.setFont(QFont("Arial", 10));
     QString contributionText = "This app was designed by Matthew Cornelisse.  As part of the usage agreement, 5% of any profits";
     int contributionTextX = 10; // 10 pixels from left edge
-    int contributionTextY = rect().height() - 25; // 20 pixels from the bottom edge
+    int contributionTextY = rect().height() - 45; // above the bottom bar
     painter.drawText(contributionTextX, contributionTextY, contributionText);
     contributionText = "derived from products designed with the help of this app must be contributed to Matthew Cornelisse.";
     contributionTextY += 15;
@@ -127,18 +91,6 @@ void DieVisualization::paintEvent(QPaintEvent* event) {
 void DieVisualization::resizeEvent(QResizeEvent* event) {
     QWidget::resizeEvent(event);
 
-    // Reposition the "Points" button
-    int buttonWidth = _pointsButton->width();
-    int buttonHeight = _pointsButton->height();
-    int x = width() - buttonWidth - 10; // 10 pixels from right edge
-    int y = height() - buttonHeight - 10; // 10 pixels from bottom edge
-    _pointsButton->move(x, y);
-
-    // Reposition the checkbox
-    int checkboxX = 10;
-    int checkboxY = rect().height() - 55;
-    _highlightCheckbox->move(checkboxX, checkboxY);
-
     // Resize the PointsWindow if it's open
     if (_pointsWindow && _pointsWindow->isVisible()) {
         int parentWidth = width();
@@ -147,32 +99,58 @@ void DieVisualization::resizeEvent(QResizeEvent* event) {
     }
 }
 
-void DieVisualization::onPointsButtonClicked() {
+void DieVisualization::togglePoints() {
     if (_pointsWindow && _pointsWindow->isVisible()) {
-        // Hide the PointsWindow
         _pointsWindow->close();
-        _pointsButton->setText("Points Show");
         Die::resumeOptimization();
+        emit pointsWindowToggled(false);
     } else {
-        // Show the PointsWindow
         if (!_pointsWindow) {
-            _pointsWindow = new PointsWindow(1.0, _dieArray, this);
+            _pointsWindow = new PointsWindow(20.0, _dieArray, this);
             _pointsWindow->setAttribute(Qt::WA_DeleteOnClose);
             connect(_pointsWindow, &QWidget::destroyed, this, [this]() {
                 _pointsWindow = nullptr;
-                _pointsButton->setText("Points Show");
                 Die::resumeOptimization();
+                emit pointsWindowToggled(false);
             });
         }
         _pointsWindow->show();
-        _pointsButton->setText("Points Hide");
         Die::pauseOptimization();
+        emit pointsWindowToggled(true);
     }
 }
 
-void DieVisualization::onHighlightCheckboxChanged(int state) {
-    // Update the highlightExtremes boolean based on the checkbox state
-    _highlightExtremes = (state == Qt::Checked);
+void DieVisualization::setHighlightExtremes(bool highlight) {
+    _highlightExtremes = highlight;
+}
+
+void DieVisualization::buildModel() {
+    size_t bestIndex = 0;
+    double bestStress = std::numeric_limits<double>::max();
+    for (int i = 0; i < THREAD_COUNT; ++i) {
+        if (_dieArray[i] != nullptr) {
+            double stress = _dieArray[i]->getBest().getTotalStress();
+            if (stress < bestStress) {
+                bestStress = stress;
+                bestIndex = i;
+            }
+        }
+    }
+
+    BuildModelDialog dlg(this);
+    if (dlg.exec() != QDialog::Accepted) return;
+
+    // Scale to physical mm so engraveDepth (mm) is meaningful.
+    const double cloudRadius = 20.0;
+    std::vector<Vec3> points;
+    for (size_t i = 0; i < _dieArray[bestIndex]->getBest().sideCount(); ++i) {
+        Vec3 point = _dieArray[bestIndex]->getBest().getPoint(i) * cloudRadius;
+        points.push_back(point);
+    }
+    double radius = computeMaxRadius(points);
+    std::vector<size_t> labels = _dieArray[bestIndex]->getLabels();
+    createSTL(radius, points, dlg.filePath().toStdString(), labels,
+              dlg.selectedFont(), dlg.engraveDepth(), dlg.draftAngleDeg());
 }
 
 bool DieVisualization::hasHeightForWidth() const {

@@ -7,7 +7,6 @@
 #include <QDoubleSpinBox>
 #include <QVBoxLayout>
 #include <array>
-#include <QPushButton>
 #include "Die.h"
 #include "OptimizationThread.h"
 
@@ -23,10 +22,8 @@ private:
     QDoubleSpinBox* _faceToCenterSpinBox;
     QDoubleSpinBox* _radiusDoubleBox;
     QTableWidget* _pointsTable;
-    QPushButton* _buildModelButton;
     Die* _bestDie;
     double maxRadius() const;
-    void buildModel();
     void updateRadiusRange();
 
     void populateTable();
