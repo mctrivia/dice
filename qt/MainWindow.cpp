@@ -4,6 +4,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QIntValidator>
+#include <QDialog>
 
 
 
@@ -17,7 +18,7 @@ bool isValidEvenNumber(const string& input) {
     return number > 0 && number % 2 == 0;
 }
 
-MainWindow::MainWindow(QWidget* parent) : QWidget(parent), _sideCount(0) {
+MainWindow::MainWindow(QWidget* parent) : QDialog(parent), _sideCount(0) {
     // Description labels
     QLabel* descriptionLabel = new QLabel(
             "This app tries to calculate the optimal placement\n"
@@ -61,7 +62,7 @@ void MainWindow::onSideCountChanged(const QString& text) {
 void MainWindow::onStartButtonClicked() {
     if (!_startButton->isEnabled()) return;
     _sideCount = _sideCountInput->text().toUInt();
-    close(); // Close the input window
+    accept(); // Close the dialog and return from exec()
 }
 
 unsigned int MainWindow::getSideCount() const {

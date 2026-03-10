@@ -91,10 +91,8 @@ int main(int argc, char* argv[]) {
         app->setWindowIcon(createDiceIcon());
         QDir::setCurrent(QCoreApplication::applicationDirPath() + "/..");
         mainWindow = new MainWindow();
-        mainWindow->show();
-
-        // Wait for the input window to close
-        app->exec();
+        // exec() runs its own nested event loop and returns when accept/reject is called
+        if (mainWindow->exec() != QDialog::Accepted) return 0;
 
         sides = mainWindow->getSideCount();
         if (sides == 0) return 0;

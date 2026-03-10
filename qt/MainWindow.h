@@ -2,13 +2,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QWidget>
+#include <QDialog>
 #include <array>
 #include <QLineEdit>
 #include <QPushButton>
 #include "Die.h"
 
-class MainWindow : public QWidget {
+class MainWindow : public QDialog {
 Q_OBJECT
 public:
     explicit MainWindow(QWidget* parent = nullptr);

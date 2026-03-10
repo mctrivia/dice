@@ -16,9 +16,14 @@ BuildModelDialog::BuildModelDialog(QWidget* parent)
     setWindowTitle(tr("Build Model"));
 
     _fontCombo = new QComboBox(this);
+    _fontCombo->addItem(tr("Sans-Serif"),      (int)FontStyle::SansSerif);
+    _fontCombo->addItem(tr("Serif"),          (int)FontStyle::Serif);
     _fontCombo->addItem(tr("7-Segment"),      (int)FontStyle::Seg7);
     _fontCombo->addItem(tr("7-Segment Thin"), (int)FontStyle::ThinSeg7);
+    _fontCombo->addItem(tr("7-Segment Bold"), (int)FontStyle::Bold);
+    _fontCombo->addItem(tr("7-Segment Narrow"),(int)FontStyle::Narrow);
     _fontCombo->addItem(tr("Dot Matrix"),     (int)FontStyle::Pixel);
+    _fontCombo->addItem(tr("Heavy Pixel"),    (int)FontStyle::HeavyPixel);
     _fontCombo->addItem(tr("Blank"),          (int)FontStyle::Blank);
 
     _depthSpin = new QDoubleSpinBox(this);
