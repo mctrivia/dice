@@ -126,7 +126,6 @@ int main(int argc, char* argv[]) {
         running.store(true);
 
         for (size_t i = 0; i < THREAD_COUNT - 1; ++i) {
-            this_thread::sleep_for(chrono::milliseconds(100));
             auto* t = new OptimizationThread(i, dieArray, sides, running);
             optThreads.push_back(t);
             t->start();

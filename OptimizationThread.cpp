@@ -11,24 +11,30 @@ OptimizationThread::OptimizationThread(size_t index, std::array<Die*, THREAD_COU
 void OptimizationThread::run() {
     const size_t bestThreadIndex = THREAD_COUNT - 1;
     while (_running.load()) {
-        Die* currentDie = new Die(_sides, false);
+        try {
+            Die* currentDie = new Die(_sides, false);
 
-        {
-            QMutexLocker locker(_bestMutex);
-            if (_dieArray[_index] != nullptr) delete _dieArray[_index];
-            _dieArray[_index] = currentDie;
-        }
-
-        while (_running.load() && (currentDie->getSecondsSinceLastBest() < 120)) {
-            currentDie->optimize();
-        }
-
-        {
-            QMutexLocker locker(_bestMutex);
-            double currentStress = currentDie->getBest().getTotalStress();
-            if (currentStress < _dieArray[bestThreadIndex]->getBest().getTotalStress()) {
-                *(_dieArray[bestThreadIndex]) = *currentDie;
+            {
+                QMutexLocker locker(_bestMutex);
+                if (_dieArray[_index] != nullptr) delete _dieArray[_index];
+                _dieArray[_index] = currentDie;
             }
+
+            while (_running.load() && (currentDie->getSecondsSinceLastBest() < 120)) {
+                currentDie->optimize();
+            }
+
+            {
+                QMutexLocker locker(_bestMutex);
+                if (_dieArray[bestThreadIndex] != nullptr) {
+                    double currentStress = currentDie->getBest().getTotalStress();
+                    if (currentStress < _dieArray[bestThreadIndex]->getBest().getTotalStress()) {
+                        *(_dieArray[bestThreadIndex]) = *currentDie;
+                    }
+                }
+            }
+        } catch (...) {
+            // Swallow any exception so this thread keeps running
         }
     }
 }
