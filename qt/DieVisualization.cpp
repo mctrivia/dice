@@ -16,9 +16,6 @@ DieVisualization::DieVisualization(std::array<Die*, THREAD_COUNT>& dieArray, QWi
     _timer = new QTimer(this);
     connect(_timer, &QTimer::timeout, this, &DieVisualization::updateVisualization);
     _timer->start(50); // Update every 50 ms
-
-    raise();
-    activateWindow();
 }
 
 void DieVisualization::updateVisualization() {
@@ -42,6 +39,16 @@ void DieVisualization::paintEvent(QPaintEvent* event) {
                 bestIndex = i;
             }
         }
+    }
+
+    // Show placeholder until optimization has started
+    if (bestStress == std::numeric_limits<double>::max()) {
+        _bestMutex.unlock();
+        painter.setPen(Qt::gray);
+        painter.setFont(QFont("Arial", 14));
+        painter.drawText(rect(), Qt::AlignCenter,
+                         "Enter an even number of sides and click Start");
+        return;
     }
 
     // Set up painter and font

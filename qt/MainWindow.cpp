@@ -1,70 +1,105 @@
-// MainWindow.cpp
 #include "MainWindow.h"
+#include "DieVisualization.h"
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QIntValidator>
-#include <QDialog>
+#include <QCheckBox>
 
+MainWindow::MainWindow(std::array<Die*, THREAD_COUNT>& dieArray, QWidget* parent)
+    : QWidget(parent)
+{
+    setWindowTitle("Dice Optimizer");
 
+    QVBoxLayout* root = new QVBoxLayout(this);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(0);
 
-// Helper function to check if the input string represents a valid even number
-bool isValidEvenNumber(const string& input) {
-    if (input.empty()) return false;
-    for (char c: input) {
-        if (!isdigit(c)) return false;
-    }
-    int number = stoi(input);
-    return number > 0 && number % 2 == 0;
-}
+    // ── Input bar (hidden after Start) ────────────────────────────────────────
+    _inputBar = new QWidget();
+    QHBoxLayout* inputLayout = new QHBoxLayout(_inputBar);
+    inputLayout->setContentsMargins(10, 8, 10, 8);
 
-MainWindow::MainWindow(QWidget* parent) : QDialog(parent), _sideCount(0) {
-    // Description labels
-    QLabel* descriptionLabel = new QLabel(
-            "This app tries to calculate the optimal placement\n"
-            "of faces for any even-sided die.\n\n"
-            "If you make any profit from products designed with the\n"
-            "help of this app, give Matthew Cornelisse a 5% cut.\n"
-            "See README.md for more info."
-    );
+    inputLayout->addWidget(new QLabel(
+        "Optimizes face placement for any even-sided die."
+        "  Give Matthew Cornelisse 5% of any profit from products made with this app."));
+    inputLayout->addStretch();
+    inputLayout->addWidget(new QLabel("Sides:"));
 
-    // Side count input
-    QLabel* sideCountLabel = new QLabel("Number of sides:");
     _sideCountInput = new QLineEdit();
-    _sideCountInput->setValidator(new QIntValidator(2, 4000, this)); // Assuming a reasonable upper limit
-
-    connect(_sideCountInput, &QLineEdit::textChanged, this, &MainWindow::onSideCountChanged);
-    connect(_sideCountInput, &QLineEdit::returnPressed, this, &MainWindow::onStartButtonClicked);
-
-    // Start button
-    _startButton = new QPushButton("Start");
-    _startButton->setEnabled(false); // Disabled until valid input
-    connect(_startButton, &QPushButton::clicked, this, &MainWindow::onStartButtonClicked);
-
-    // Layout setup
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->addWidget(descriptionLabel);
-
-    QHBoxLayout* inputLayout = new QHBoxLayout();
-    inputLayout->addWidget(sideCountLabel);
+    _sideCountInput->setValidator(new QIntValidator(2, 9998, this));
+    _sideCountInput->setFixedWidth(70);
+    _sideCountInput->setPlaceholderText("even #");
     inputLayout->addWidget(_sideCountInput);
-    mainLayout->addLayout(inputLayout);
 
-    mainLayout->addWidget(_startButton);
-    setLayout(mainLayout);
+    _startButton = new QPushButton("Start");
+    _startButton->setEnabled(false);
+    inputLayout->addWidget(_startButton);
+
+    root->addWidget(_inputBar);
+
+    // ── Visualization (always present, shows placeholder until started) ───────
+    _vis = new DieVisualization(dieArray, this);
+    root->addWidget(_vis, 1);
+
+    // ── Bottom bar ────────────────────────────────────────────────────────────
+    QWidget*     bottomBar    = new QWidget();
+    QHBoxLayout* bottomLayout = new QHBoxLayout(bottomBar);
+    bottomLayout->setContentsMargins(10, 4, 10, 4);
+
+    QCheckBox* highlightCheckbox = new QCheckBox("Highlight Extremes");
+    highlightCheckbox->setChecked(true);
+    bottomLayout->addWidget(highlightCheckbox);
+    bottomLayout->addStretch();
+
+    _buildModelButton = new QPushButton("Build Model");
+    _buildModelButton->setFixedSize(120, 30);
+    _buildModelButton->setVisible(false);
+    bottomLayout->addWidget(_buildModelButton);
+
+    _pointsButton = new QPushButton("Points Show");
+    _pointsButton->setFixedSize(120, 30);
+    _pointsButton->setEnabled(false);
+    bottomLayout->addWidget(_pointsButton);
+
+    root->addWidget(bottomBar);
+
+    // ── Connections ───────────────────────────────────────────────────────────
+    connect(_sideCountInput, &QLineEdit::textChanged,
+            this, &MainWindow::onSideCountChanged);
+    connect(_sideCountInput, &QLineEdit::returnPressed,
+            this, &MainWindow::onStartButtonClicked);
+    connect(_startButton, &QPushButton::clicked,
+            this, &MainWindow::onStartButtonClicked);
+
+    connect(_buildModelButton, &QPushButton::clicked,
+            _vis, &DieVisualization::buildModel);
+    connect(_pointsButton, &QPushButton::clicked,
+            _vis, &DieVisualization::togglePoints);
+    connect(highlightCheckbox, &QCheckBox::stateChanged, _vis,
+            [this](int state) {
+                _vis->setHighlightExtremes(state == Qt::Checked);
+            });
+    connect(_vis, &DieVisualization::pointsWindowToggled,
+            [this](bool showing) {
+                _pointsButton->setText(showing ? "Points Hide" : "Points Show");
+                _buildModelButton->setVisible(showing);
+            });
 }
 
 void MainWindow::onSideCountChanged(const QString& text) {
-    bool validInput = isValidEvenNumber(text.toStdString());
-    _startButton->setEnabled(validInput);
+    bool ok = false;
+    int  n  = text.toInt(&ok);
+    _startButton->setEnabled(ok && n >= 2 && n % 2 == 0);
 }
 
 void MainWindow::onStartButtonClicked() {
     if (!_startButton->isEnabled()) return;
-    _sideCount = _sideCountInput->text().toUInt();
-    accept(); // Close the dialog and return from exec()
-}
+    unsigned int sides = _sideCountInput->text().toUInt();
 
-unsigned int MainWindow::getSideCount() const {
-    return _sideCount;
+    // Lock the input so the user can't start twice
+    _inputBar->setEnabled(false);
+    _pointsButton->setEnabled(true);
+
+    emit startRequested(sides);
 }

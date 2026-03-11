@@ -1,27 +1,32 @@
-// MainWindow.h
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
-
-#include <QDialog>
-#include <array>
+#pragma once
+#include <QWidget>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QCheckBox>
+#include <array>
 #include "Die.h"
+#include "OptimizationThread.h"
 
-class MainWindow : public QDialog {
-Q_OBJECT
+class DieVisualization;
+
+class MainWindow : public QWidget {
+    Q_OBJECT
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
-    unsigned int getSideCount() const;
+    explicit MainWindow(std::array<Die*, THREAD_COUNT>& dieArray,
+                        QWidget* parent = nullptr);
+
+signals:
+    void startRequested(unsigned int sides);
 
 private slots:
     void onStartButtonClicked();
     void onSideCountChanged(const QString& text);
 
 private:
-    QLineEdit* _sideCountInput;
-    QPushButton* _startButton;
-    unsigned int _sideCount;
+    QWidget*          _inputBar;
+    QLineEdit*        _sideCountInput;
+    QPushButton*      _startButton;
+    DieVisualization* _vis;
+    QPushButton*      _pointsButton;
+    QPushButton*      _buildModelButton;
 };
-
-#endif // MAINWINDOW_H
