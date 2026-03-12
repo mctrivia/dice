@@ -16,6 +16,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QIcon>
+#include <QMessageBox>
 #include <QPainter>
 #include <QPixmap>
 
@@ -103,7 +104,12 @@ int main(int argc, char* argv[]) {
     std::srand(std::time(0));
     QApplication app(argc, argv);
     app.setWindowIcon(createDiceIcon());
-    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/..");
+#ifdef Q_OS_MACOS
+    // Binary lives inside dice.app/Contents/MacOS — go up 3 levels to sit beside the bundle
+    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/../../..");
+#else
+    QDir::setCurrent(QCoreApplication::applicationDirPath());
+#endif
 
     // dieArray lives here for the whole session.
     // DieVisualization holds a reference to it and polls every 50 ms.
@@ -122,33 +128,41 @@ int main(int argc, char* argv[]) {
 
     QObject::connect(&window, &MainWindow::startRequested,
                      [&](unsigned int sides) {
-        dieArray[THREAD_COUNT-1] = new Die(sides, true);
-        running.store(true);
+        try {
+            dieArray[THREAD_COUNT-1] = new Die(sides, true);
+            running.store(true);
 
-        for (size_t i = 0; i < THREAD_COUNT - 1; ++i) {
-            auto* t = new OptimizationThread(i, dieArray, sides, running);
-            optThreads.push_back(t);
-            t->start();
-        }
-        bestThread = std::thread([&]() {
-            while (running.load()) dieArray[THREAD_COUNT-1]->optimize();
-        });
-        saveThread = std::thread([&]() {
-            const int TICKS = 100; int tick = TICKS;
-            while (running.load()) {
-                this_thread::sleep_for(chrono::milliseconds(100));
-                if (--tick > 0) continue;
-                tick = TICKS;
-                size_t best = 0; double bestStress = numeric_limits<double>::max();
-                for (int i = 0; i < THREAD_COUNT; ++i)
-                    if (dieArray[i] &&
-                        dieArray[i]->getBest().getTotalStress() < bestStress) {
-                        bestStress = dieArray[i]->getBest().getTotalStress();
-                        best = i;
-                    }
-                dieArray[best]->save();
+            for (size_t i = 0; i < THREAD_COUNT - 1; ++i) {
+                auto* t = new OptimizationThread(i, dieArray, sides, running);
+                optThreads.push_back(t);
+                t->start();
             }
-        });
+            bestThread = std::thread([&]() {
+                while (running.load() && dieArray[THREAD_COUNT-1])
+                    dieArray[THREAD_COUNT-1]->optimize();
+            });
+            saveThread = std::thread([&]() {
+                const int TICKS = 100; int tick = TICKS;
+                while (running.load()) {
+                    this_thread::sleep_for(chrono::milliseconds(100));
+                    if (--tick > 0) continue;
+                    tick = TICKS;
+                    size_t best = 0; double bestStress = numeric_limits<double>::max();
+                    for (int i = 0; i < THREAD_COUNT; ++i)
+                        if (dieArray[i] &&
+                            dieArray[i]->getBest().getTotalStress() < bestStress) {
+                            bestStress = dieArray[i]->getBest().getTotalStress();
+                            best = i;
+                        }
+                    dieArray[best]->save();
+                }
+            });
+        } catch (const std::exception& e) {
+            QMessageBox::critical(&window, "Failed to start",
+                                  QString("Error: %1").arg(e.what()));
+        } catch (...) {
+            QMessageBox::critical(&window, "Failed to start", "An unknown error occurred.");
+        }
     });
 
     QObject::connect(&app, &QApplication::aboutToQuit, [&]() {

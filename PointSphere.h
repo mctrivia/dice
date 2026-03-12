@@ -6,14 +6,14 @@
 #define DICE2_POINTSPHERE_H
 
 #include <vector>
-#include <mutex>
-#include <condition_variable>
+#include <limits>
+#include <QMutex>
 #include "Vec3.h"
 
 using namespace std;
 
 class PointSphere {
-    mutable mutex _mtx;
+    mutable QMutex _mtx;
     size_t _sideCount;
     vector<Vec3> _points;
     size_t _lowestStressIndex = numeric_limits<size_t>::max();

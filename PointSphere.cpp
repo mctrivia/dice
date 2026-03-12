@@ -9,6 +9,7 @@
 #include <filesystem>
 #include "PointSphere.h"
 #include <limits>
+#include <mutex>
 
 /**
  * Generates a random point sphere of a specific number of sides
@@ -34,7 +35,7 @@ PointSphere::PointSphere(size_t sideCount) : _sideCount(sideCount) {
  * @param other
  */
 PointSphere::PointSphere(const PointSphere& other) {
-    std::lock_guard<std::mutex> lock(other._mtx); // Lock the source mutex
+    std::lock_guard<QMutex> lock(other._mtx);
 
     _sideCount = other._sideCount;
     _points = other._points;
@@ -50,8 +51,8 @@ PointSphere::PointSphere(const PointSphere& other) {
  */
 PointSphere& PointSphere::operator=(const PointSphere& other) {
     if (this != &other) {
-        const std::lock_guard<std::mutex> lockThis(_mtx);
-        const std::lock_guard<std::mutex> lockOther(other._mtx);
+        std::lock_guard<QMutex> lockThis(_mtx);
+        std::lock_guard<QMutex> lockOther(other._mtx);
         _sideCount = other._sideCount;
         _points = other._points;
         _lowestStressIndex = other._lowestStressIndex;
@@ -75,7 +76,7 @@ double PointSphere::load() {
     _sideCount = std::stoi(baseName);
 
     //make sure read and writes not at the same time
-    const std::lock_guard<std::mutex> lock(_mtx);
+    std::lock_guard<QMutex> lock(_mtx);
 
     //check file exists
     ifstream inFile(filename);
@@ -142,7 +143,7 @@ void PointSphere::save(double rate) {
     std::filesystem::create_directories("best");
 
     //make sure read and writes not at the same time
-    const std::lock_guard<std::mutex> lock(_mtx);
+    std::lock_guard<QMutex> lock(_mtx);
 
     //check better than saved vale
     double bestStress = getTotalStress(false);
@@ -203,11 +204,8 @@ Vec3 PointSphere::getPoint(size_t sideIndex) const {
  * @return
  */
 Vec3 PointSphere::getStress(size_t sideIndex, bool lockWhileExecuting) const {
-    // Use a unique_ptr to conditionally hold the lock
-    std::unique_ptr<std::lock_guard<std::mutex>> lockGuard;
-    if (lockWhileExecuting) {
-        lockGuard = std::make_unique<std::lock_guard<std::mutex>>(_mtx);
-    }
+    std::unique_lock<QMutex> lockGuard(_mtx, std::defer_lock);
+    if (lockWhileExecuting) lockGuard.lock();
 
     //calculate the stress on a point
     Vec3 totalStress(0.0, 0.0, 0.0);
@@ -219,10 +217,10 @@ Vec3 PointSphere::getStress(size_t sideIndex, bool lockWhileExecuting) const {
         if (point == referencePoint) continue;
 
         Vec3 direction = referencePoint - point;
-        double distSquared = direction.lengthSquared();                 // Compute the squared distance
-        Vec3 directionNormalized = direction / sqrt(distSquared);    // Normalize the direction vector
-        totalStress += directionNormalized * (1.0 /
-                                              distSquared);       // Add the stress (force) vectorially: magnitude is 1 / distSquared, in the direction of directionNormalized
+        double distSquared = direction.lengthSquared();
+        if (distSquared == 0.0) continue;
+        Vec3 directionNormalized = direction / sqrt(distSquared);
+        totalStress += directionNormalized * (1.0 / distSquared);
     }
 
     return totalStress;
@@ -233,11 +231,8 @@ Vec3 PointSphere::getStress(size_t sideIndex, bool lockWhileExecuting) const {
  * @return
  */
 double PointSphere::getTotalStress(bool lockWhileExecuting) {
-    // Use a unique_ptr to conditionally hold the lock
-    std::unique_ptr<std::lock_guard<std::mutex>> lockGuard;
-    if (lockWhileExecuting) {
-        lockGuard = std::make_unique<std::lock_guard<std::mutex>>(_mtx);
-    }
+    std::unique_lock<QMutex> lockGuard(_mtx, std::defer_lock);
+    if (lockWhileExecuting) lockGuard.lock();
 
     // If the total stress has already been calculated, return it
     if (_totalStress != numeric_limits<double>::infinity()) return _totalStress;
@@ -273,7 +268,7 @@ size_t PointSphere::sideCount() const {
  * @param value
  */
 void PointSphere::movePoint(size_t sideIndex, const Vec3& value) {
-    const std::lock_guard<std::mutex> lock(_mtx);
+    std::lock_guard<QMutex> lock(_mtx);
     size_t index = sideIndex / 2;
     int mult = (sideIndex % 2 == 0) ? 1 : -1;  //handle if mirrored point was moved
     Vec3 newValue = value * mult;
@@ -288,7 +283,7 @@ void PointSphere::movePoint(size_t sideIndex, const Vec3& value) {
 }
 
 size_t PointSphere::getHighestStressIndex() {
-    const std::lock_guard<std::mutex> lock(_mtx);
+    std::lock_guard<QMutex> lock(_mtx);
     if (_highestStressIndex != numeric_limits<size_t>::max()) return _highestStressIndex;
 
     double stress = 0;
@@ -303,7 +298,7 @@ size_t PointSphere::getHighestStressIndex() {
 }
 
 size_t PointSphere::getLowestStressIndex() {
-    const std::lock_guard<std::mutex> lock(_mtx);
+    std::lock_guard<QMutex> lock(_mtx);
     if (_lowestStressIndex != numeric_limits<size_t>::max()) return _lowestStressIndex;
 
     double stress = numeric_limits<double>::max();

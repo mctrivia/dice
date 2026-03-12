@@ -53,6 +53,10 @@ if(WIN32)
     # Hide the console window for a pure GUI app on Windows.
     # Remove this line if you want to keep the console (useful for debugging).
     set_target_properties(dice PROPERTIES WIN32_EXECUTABLE TRUE)
+    # /EHs: synchronous exception handling only (default).
+    # /EHa was removed — it caused Windows to intercept internally-handled
+    # SRWLOCK spin-wait exceptions, crashing std::mutex::lock().
+    target_compile_options(dice PRIVATE /EHs)
 elseif(APPLE)
     target_link_libraries(dice "-framework Cocoa")
     set_target_properties(dice PROPERTIES

@@ -72,7 +72,7 @@ void Die::optimize() {
 
     //compute how much to move point
     Vec3 maxStressPoint = _current.getPoint(optimizeIndex);
-    Vec3 moveAmount = _current.getStress(optimizeIndex) * _moveRate;
+    Vec3 moveAmount = _current.getStress(optimizeIndex, false) * _moveRate;
     Vec3 newPoint = maxStressPoint + moveAmount;
     newPoint.normalize();
 
@@ -80,11 +80,10 @@ void Die::optimize() {
     _current.movePoint(optimizeIndex, newPoint);
 
     //see if best
-    if (_current.getTotalStress() < _best.getTotalStress()) {
+    if (_current.getTotalStress(false) < _best.getTotalStress()) {
         _nextReduceTime = REDUCE_RATE;
         _best = _current;
         _lastBestTime = std::chrono::steady_clock::now();
-        //_best.save(_moveRate);
         _labels.clear();    //remove cached labels since things have moved
         return;
     }
