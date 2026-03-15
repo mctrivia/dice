@@ -156,8 +156,16 @@ void DieVisualization::buildModel() {
     }
     double radius = computeMaxRadius(points);
     std::vector<size_t> labels = _dieArray[bestIndex]->getLabels();
+    auto font = dlg.selectedFont();
+    int limit = font->maxSides();
+    if (limit > 0 && (int)labels.size() > limit) {
+        QMessageBox::warning(this, tr("Font limit"),
+            tr("The selected font supports at most %1 faces. "
+               "This die has %2 faces.").arg(limit).arg(labels.size()));
+        return;
+    }
     createSTL(radius, points, dlg.filePath().toStdString(), labels,
-              dlg.selectedFont(), dlg.engraveDepth(), dlg.draftAngleDeg());
+              *font, dlg.engraveDepth(), dlg.draftAngleDeg());
 }
 
 bool DieVisualization::hasHeightForWidth() const {

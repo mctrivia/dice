@@ -14,7 +14,7 @@ class BuildModelDialog : public QDialog {
 public:
     explicit BuildModelDialog(QWidget* parent = nullptr);
 
-    FontStyle  selectedFont()  const;
+    std::unique_ptr<Font> selectedFont() const;
     double     engraveDepth()  const;   // millimetres
     double     draftAngleDeg() const;   // degrees
     QString    filePath()      const;

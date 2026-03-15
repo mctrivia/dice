@@ -2,7 +2,6 @@
 #include "Common.h"
 #include "Sphere.h"
 #include "Font.h"
-#include "Engrave.h"
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -27,7 +26,7 @@ void storeTriangle(const Vec3& normal, const Vec3& v1, const Vec3& v2, const Vec
 
 void createSTL(double r, const std::vector<Vec3>& points,
                const std::string& fileName, const std::vector<size_t>& labels,
-               FontStyle font, double engraveDepth, double draftAngleDeg)
+               const Font& font, double engraveDepth, double draftAngleDeg)
 {
     _triangles.clear();
 
@@ -40,9 +39,10 @@ void createSTL(double r, const std::vector<Vec3>& points,
     Rect2D uniformGlyphRect = {};
     double uniformScale = 0;
     int maxDigits = 1;
+    size_t maxLabel = 0;
 
     if (doEngrave) {
-        size_t maxLabel = *std::max_element(labels.begin(), labels.end());
+        maxLabel = *std::max_element(labels.begin(), labels.end());
         maxDigits = (maxLabel >= 10) ? (int)(floor(log10((double)maxLabel)) + 1) : 1;
 
         double minFaceRadius = std::numeric_limits<double>::max();
@@ -72,9 +72,9 @@ void createSTL(double r, const std::vector<Vec3>& points,
         const auto& fd = faces[f];
         if (doEngrave && f < labels.size()) {
             double depthUnits = (r > 1e-9) ? engraveDepth * fd.center.length() / r : engraveDepth;
-            auto glyph = buildGlyph(font, labels[f], uniformScale, maxDigits);
-            createEngravedFace(fd.loop, fd.center, fd.normal, fd.u, fd.v,
-                               uniformGlyphRect, glyph.engRects, depthUnits, draftAngleDeg);
+            font.buildFace(labels[f], uniformScale, maxDigits, maxLabel,
+                           fd.loop, fd.center, fd.normal, fd.u, fd.v,
+                           uniformGlyphRect, depthUnits, draftAngleDeg);
         } else {
             size_t nv = fd.loop.size();
             for (size_t i = 0; i < nv; ++i) {

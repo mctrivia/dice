@@ -6,6 +6,13 @@
 // Axis-aligned rectangle in face-local 2D coords: {x0, y0, x1, y1}.
 using Rect2D = std::array<double, 4>;
 
+// Arbitrary convex quadrilateral: 4 2D points {x0,y0, x1,y1, x2,y2, x3,y3}.
+using Quad2D = std::array<double, 8>;
+
+// Convex polygon with N vertices: {x0,y0, x1,y1, ..., xN-1,yN-1}.
+// Used for hex segments (7-seg font) and circular pips.
+using Poly2D = std::vector<double>;
+
 struct Vec3Hash {
     std::size_t operator()(const Vec3& v) const {
         std::hash<double> h;

@@ -93,12 +93,12 @@ jobs:
             xargs -I{} cp --no-clobber {} dist/ 2>/dev/null || true
 
           # Launch wrapper that sets library path relative to itself
-          cat > dist/run.sh << 'EOF'
+          cat > dist/run.sh << 'RUNEOF'
           #!/bin/bash
           DIR="$(cd "$(dirname "$0")" && pwd)"
           export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"
           exec "$DIR/dice" "$@"
-          EOF
+          RUNEOF
           chmod +x dist/run.sh dist/dice
           cp -r best dist/best
 
@@ -126,4 +126,4 @@ jobs:
           files: |
             dice-macos/dice-macos.dmg
             dice-windows/dice-windows.zip
-            dice-linux/dice-linux.AppImage
+            dice-linux/dice-linux.tar.gz

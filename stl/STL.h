@@ -6,7 +6,7 @@
 
 void createSTL(double r, const std::vector<Vec3>& points, const std::string& fileName,
                const std::vector<size_t>& labels,
-               FontStyle font       = FontStyle::Seg7,
+               const Font& font,
                double engraveDepth  = 0.5,
                double draftAngleDeg = 1.0);
 
