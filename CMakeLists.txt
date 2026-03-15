@@ -28,8 +28,13 @@ add_executable(dice
         Die.cpp
         stl/STL.cpp
         stl/Sphere.cpp
-        stl/Font.cpp
         stl/Engrave.cpp
+        stl/font/FontBase.cpp
+        stl/font/FontHelpers.cpp
+        stl/font/Seg7Font.cpp
+        stl/font/PixelFont.cpp
+        stl/font/BlankFont.cpp
+        stl/font/Courier.cpp
         PT.cpp
         )
 
