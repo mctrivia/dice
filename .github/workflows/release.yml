@@ -83,43 +83,31 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j$(nproc)
 
-      - name: Package AppImage
+      - name: Package tar.gz
         run: |
-          # Install linuxdeployqt
-          wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
-          chmod +x linuxdeployqt
+          mkdir -p dist
+          cp build/dice dist/
 
-          # Set up AppDir structure
-          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
-          cp build/dice AppDir/usr/bin/
-          cp -r best AppDir/usr/bin/best
+          # Copy Qt and system libs needed at runtime
+          ldd build/dice | awk '/=>/ { print $3 }' | grep -E 'libQt|libGL|libicu' | \
+            xargs -I{} cp --no-clobber {} dist/ 2>/dev/null || true
 
-          # Create .desktop file
-          cat > AppDir/usr/share/applications/dice.desktop << 'DESKTOP'
-          [Desktop Entry]
-          Name=Dice Optimizer
-          Exec=dice
-          Icon=dice
-          Type=Application
-          Categories=Utility;
-          DESKTOP
-          # linuxdeployqt needs .desktop at AppDir root
-          cp AppDir/usr/share/applications/dice.desktop AppDir/
+          # Launch wrapper that sets library path relative to itself
+          cat > dist/run.sh << 'RUNEOF'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "$0")" && pwd)"
+          export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"
+          exec "$DIR/dice" "$@"
+          RUNEOF
+          chmod +x dist/run.sh dist/dice
+          cp -r best dist/best
 
-          # Create a simple icon (solid square as placeholder)
-          convert -size 256x256 xc:steelblue AppDir/usr/share/icons/hicolor/256x256/apps/dice.png 2>/dev/null || \
-            touch AppDir/usr/share/icons/hicolor/256x256/apps/dice.png
-          cp AppDir/usr/share/icons/hicolor/256x256/apps/dice.png AppDir/dice.png
-
-          # Build AppImage
-          ./linuxdeployqt AppDir/usr/bin/dice -appimage -no-translations
-
-          mv Dice_Optimizer-*.AppImage dice-linux.AppImage
+          tar -czf dice-linux.tar.gz -C dist .
 
       - uses: actions/upload-artifact@v4
         with:
           name: dice-linux
-          path: dice-linux.AppImage
+          path: dice-linux.tar.gz
 
   # ──────────────────── Publish GitHub Release ──────────────────
   release:
@@ -138,4 +126,4 @@ jobs:
           files: |
             dice-macos/dice-macos.dmg
             dice-windows/dice-windows.zip
-            dice-linux/dice-linux.AppImage
+            dice-linux/dice-linux.tar.gz
